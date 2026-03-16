@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContentForge — AI Blog Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e0e0e;
+    --paper: #f5f2eb;
+    --cream: #ede9df;
+    --accent: #c8420a;
+    --accent2: #1a5c3a;
+    --muted: #6b6860;
+    --border: rgba(14,14,14,0.12);
+    --serif: 'Instrument Serif', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    --r: 6px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 200px;
+  }
+
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 32px; position: relative; z-index: 1; }
+
+  /* ── NAV ── */
+  nav {
+    padding: 24px 0;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(245,242,235,0.88);
+    backdrop-filter: blur(12px);
+  }
+  nav .inner { display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-family: var(--serif); font-size: 22px; letter-spacing: -0.3px; }
+  .logo span { color: var(--accent); }
+  nav .links { display: flex; align-items: center; gap: 32px; }
+  nav a { text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 400; transition: color .2s; }
+  nav a:hover { color: var(--ink); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 22px; border-radius: var(--r);
+    font-family: var(--sans); font-size: 14px; font-weight: 500;
+    cursor: pointer; text-decoration: none; border: none;
+    transition: all .2s; letter-spacing: 0.01em;
+  }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:hover { background: #2a2a2a; transform: translateY(-1px); }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:hover { background: #a33408; transform: translateY(-1px); }
+  .btn-outline { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+  .btn-outline:hover { background: var(--cream); }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 100px 0 80px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px 4px 8px;
+    font-size: 12px; color: var(--muted); margin-bottom: 24px;
+    letter-spacing: 0.03em;
+  }
+  .hero-tag .dot { width: 6px; height: 6px; background: var(--accent2); border-radius: 50%; }
+  h1 {
+    font-family: var(--serif); font-size: clamp(42px, 5vw, 62px);
+    line-height: 1.08; letter-spacing: -1.5px; margin-bottom: 24px;
+    font-weight: 400;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .hero-sub { font-size: 17px; color: var(--muted); line-height: 1.7; margin-bottom: 36px; max-width: 420px; }
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+  .hero-proof { margin-top: 40px; display: flex; align-items: center; gap: 16px; }
+  .avatars { display: flex; }
+  .avatars span {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid var(--paper);
+    background: var(--cream);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; margin-left: -8px;
+  }
+  .avatars span:first-child { margin-left: 0; }
+  .proof-text { font-size: 13px; color: var(--muted); }
+  .proof-text strong { color: var(--ink); }
+
+  /* ── HERO DEMO CARD ── */
+  .hero-demo {
+    background: var(--ink); border-radius: 12px; overflow: hidden;
+    box-shadow: 0 32px 80px rgba(14,14,14,0.25); position: relative;
+  }
+  .demo-topbar {
+    background: #1a1a1a; padding: 12px 16px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .demo-topbar .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .demo-topbar .dot.r { background: #ff5f57; }
+  .demo-topbar .dot.y { background: #febc2e; }
+  .demo-topbar .dot.g { background: #28c840; }
+  .demo-topbar .url-bar {
+    flex: 1; background: rgba(255,255,255,0.06); border-radius: 4px;
+    padding: 4px 10px; font-size: 11px; color: rgba(255,255,255,0.4);
+    margin: 0 8px; font-family: monospace;
+  }
+  .demo-body { padding: 24px; }
+  .demo-label { font-size: 11px; color: rgba(255,255,255,0.35); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .demo-input {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px; padding: 10px 14px; color: rgba(255,255,255,0.9);
+    font-size: 14px; font-family: var(--sans); width: 100%; margin-bottom: 12px;
+  }
+  .demo-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 20px; }
+  .demo-tag {
+    background: rgba(200,66,10,0.2); border: 1px solid rgba(200,66,10,0.3);
+    color: #f0845e; border-radius: 4px; padding: 3px 8px; font-size: 12px;
+  }
+  .demo-output {
+    background: rgba(255,255,255,0.04); border-radius: 6px; padding: 16px;
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .demo-output-title { color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+  .demo-output-preview { color: rgba(255,255,255,0.4); font-size: 12px; line-height: 1.7; }
+  .demo-blink { display: inline-block; width: 2px; height: 12px; background: var(--accent); animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 2px; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+  .demo-meta { display: flex; justify-content: space-between; margin-top: 12px; }
+  .demo-stat { font-size: 11px; color: rgba(255,255,255,0.3); }
+  .demo-stat strong { color: rgba(200,66,10,0.8); }
+
+  /* ── SECTION LABELS ── */
+  .section-label {
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 14px;
+  }
+
+  /* ── HOW IT WORKS ── */
+  .how { padding: 100px 0; border-top: 1px solid var(--border); }
+  .how h2 { font-family: var(--serif); font-size: 44px; font-weight: 400; letter-spacing: -1px; margin-bottom: 60px; max-width: 500px; }
+  .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 40px; }
+  .step-num { font-family: var(--serif); font-size: 48px; color: var(--cream); font-weight: 400; line-height: 1; margin-bottom: 16px; user-select: none; }
+  .step h3 { font-size: 17px; font-weight: 500; margin-bottom: 10px; }
+  .step p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+  /* ── PRICING ── */
+  .pricing { padding: 100px 0; background: var(--cream); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; margin-top: 60px; }
+  .plan {
+    background: var(--paper); border: 1px solid var(--border);
+    border-radius: 10px; padding: 32px;
+  }
+  .plan.featured {
+    background: var(--ink); color: var(--paper);
+    border-color: var(--ink);
+    box-shadow: 0 16px 48px rgba(14,14,14,0.2);
+    transform: translateY(-8px);
+  }
+  .plan-name { font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 16px; }
+  .plan.featured .plan-name { color: rgba(245,242,235,0.5); }
+  .plan-name:not(.featured .plan-name) { color: var(--muted); }
+  .plan-price { font-family: var(--serif); font-size: 52px; letter-spacing: -2px; line-height: 1; margin-bottom: 6px; }
+  .plan-period { font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+  .plan.featured .plan-period { color: rgba(245,242,235,0.45); }
+  .plan-features { list-style: none; margin-bottom: 32px; display: flex; flex-direction: column; gap: 12px; }
+  .plan-features li { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .plan-features li::before { content: '✓'; font-size: 12px; color: var(--accent2); font-weight: 600; }
+  .plan.featured .plan-features li { color: rgba(245,242,235,0.8); }
+  .plan.featured .plan-features li::before { color: #6ecf96; }
+  .plan .btn { width: 100%; justify-content: center; }
+  .plan-badge {
+    display: inline-block; background: var(--accent); color: #fff;
+    font-size: 11px; padding: 2px 8px; border-radius: 3px; margin-bottom: 12px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── FEATURES ── */
+  .features { padding: 100px 0; }
+  .features-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 2px; margin-top: 60px; }
+  .feature-card {
+    background: var(--cream); padding: 40px;
+    border: 1px solid var(--border);
+  }
+  .feature-card:nth-child(1) { border-radius: 10px 0 0 0; }
+  .feature-card:nth-child(2) { border-radius: 0 10px 0 0; }
+  .feature-card:nth-child(3) { border-radius: 0 0 0 10px; }
+  .feature-card:nth-child(4) { border-radius: 0 0 10px 0; }
+  .feature-icon { font-size: 24px; margin-bottom: 16px; }
+  .feature-card h3 { font-size: 18px; font-weight: 500; margin-bottom: 10px; letter-spacing: -0.3px; }
+  .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+  /* ── CTA BANNER ── */
+  .cta-banner {
+    margin: 100px 0;
+    background: var(--ink); border-radius: 16px;
+    padding: 80px 60px; text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .cta-banner::before {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 80% at 50% 120%, rgba(200,66,10,0.35) 0%, transparent 70%);
+  }
+  .cta-banner h2 {
+    font-family: var(--serif); font-size: 48px; color: var(--paper);
+    letter-spacing: -1px; margin-bottom: 16px; position: relative;
+  }
+  .cta-banner p { color: rgba(245,242,235,0.55); margin-bottom: 36px; position: relative; font-size: 16px; }
+  .cta-banner .btn-accent { position: relative; padding: 14px 32px; font-size: 15px; }
+
+  /* ── FOOTER ── */
+  footer {
+    border-top: 1px solid var(--border); padding: 40px 0;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: var(--muted);
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(14,14,14,0.6); backdrop-filter: blur(4px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--paper); border-radius: 12px; padding: 48px;
+    width: 100%; max-width: 440px; position: relative;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.3);
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; font-size: 20px; cursor: pointer;
+    color: var(--muted); line-height: 1; padding: 4px;
+  }
+  .modal h2 { font-family: var(--serif); font-size: 28px; margin-bottom: 6px; }
+  .modal p { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .form-group input {
+    width: 100%; padding: 10px 14px; border-radius: var(--r);
+    border: 1px solid var(--border); background: var(--cream);
+    font-family: var(--sans); font-size: 14px; color: var(--ink);
+    transition: border-color .2s;
+  }
+  .form-group input:focus { outline: none; border-color: var(--ink); }
+  .form-error { color: var(--accent); font-size: 13px; margin-top: 8px; display: none; }
+  .form-error.show { display: block; }
+  .modal .btn { width: 100%; justify-content: center; padding: 13px; font-size: 15px; margin-top: 8px; }
+  .modal-switch { text-align: center; margin-top: 18px; font-size: 13px; color: var(--muted); }
+  .modal-switch a { color: var(--ink); cursor: pointer; font-weight: 500; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 2000;
+    background: var(--ink); color: var(--paper); padding: 14px 20px;
+    border-radius: 8px; font-size: 14px; max-width: 320px;
+    transform: translateY(80px); opacity: 0; transition: all .3s;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .toast.show { transform: none; opacity: 1; }
+  .toast.success { background: var(--accent2); }
+  .toast.error { background: #991111; }
+
+  @media (max-width: 768px) {
+    .hero { grid-template-columns: 1fr; gap: 48px; padding: 60px 0; }
+    .steps, .pricing-grid, .features-grid { grid-template-columns: 1fr; }
+    .plan.featured { transform: none; }
+    footer { flex-direction: column; gap: 16px; text-align: center; }
+    nav .links { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="wrap inner">
+    <div class="logo">Content<span>Forge</span></div>
+    <div class="links">
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <button class="btn btn-outline" onclick="openModal('login')">Sign in</button>
+      <button class="btn btn-primary" onclick="openModal('signup')">Get started →</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero wrap">
+  <div>
+    <div class="hero-tag"><span class="dot"></span> AI-powered content</div>
+    <h1>Turn a keyword into a <em>published</em> blog post</h1>
+    <p class="hero-sub">ContentForge writes SEO-optimised articles in seconds. No writers, no agencies, no briefs. Just great content, on demand.</p>
+    <div class="hero-cta">
+      <button class="btn btn-accent" onclick="openModal('signup')">Start free trial</button>
+      <a href="#how" class="btn btn-outline">See how it works</a>
+    </div>
+    <div class="hero-proof">
+      <div class="avatars">
+        <span>👤</span><span>👤</span><span>👤</span><span>👤</span>
+      </div>
+      <p class="proof-text"><strong>400+ solopreneurs</strong> publishing faster</p>
+    </div>
+  </div>
+
+  <div class="hero-demo">
+    <div class="demo-topbar">
+      <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+      <span class="url-bar">contentforge.app/generate</span>
+    </div>
+    <div class="demo-body">
+      <div class="demo-label">Topic</div>
+      <input class="demo-input" value="Best productivity habits for remote workers" readonly>
+      <div class="demo-label">Keywords</div>
+      <div class="demo-tags">
+        <span class="demo-tag">remote work</span>
+        <span class="demo-tag">productivity</span>
+        <span class="demo-tag">morning routine</span>
+        <span class="demo-tag">deep work</span>
+      </div>
+      <div class="demo-output">
+        <div class="demo-output-title" id="demo-title">Generating article...</div>
+        <div class="demo-output-preview" id="demo-preview">The remote revolution has transformed how we work — but without the structure of an office, many professionals struggle to reach their full potential. In this guide, we'll explore the habits that truly move the needle<span class="demo-blink"></span></div>
+        <div class="demo-meta">
+          <span class="demo-stat">Words: <strong>847</strong></span>
+          <span class="demo-stat">SEO score: <strong>94/100</strong></span>
+          <span class="demo-stat">Tone: <strong>Professional</strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="section-label">How it works</div>
+    <h2>From idea to article in three steps</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Enter your topic</h3>
+        <p>Type a subject, paste keywords, choose your tone. ContentForge understands context — the more you give, the better the output.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>AI writes the draft</h3>
+        <p>Our engine generates a structured, SEO-ready article with headings, natural keyword placement, and a compelling narrative arc.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Publish anywhere</h3>
+        <p>Copy the HTML output directly to WordPress, Ghost, Webflow, or anywhere else. Your article is ready to rank.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="wrap">
+    <div class="section-label">Features</div>
+    <h2 style="font-family:var(--serif);font-size:44px;font-weight:400;letter-spacing:-1px;margin-bottom:0;max-width:500px">Everything you need to publish at scale</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">✍️</div>
+        <h3>800–1,500 word articles</h3>
+        <p>Full-length posts that search engines and readers love. Structured with H1, H2s, introduction, body, and call-to-action.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <h3>Built-in SEO optimisation</h3>
+        <p>Keywords woven in naturally. Semantic variations included. Meta descriptions generated alongside the content.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Multiple tones</h3>
+        <p>Professional, conversational, authoritative, or playful. Match your brand voice consistently across every post.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📚</div>
+        <h3>Article library</h3>
+        <p>Every article saved to your personal library. Browse, copy, and re-export at any time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="wrap">
+    <div class="section-label">Pricing</div>
+    <h2 style="font-family:var(--serif);font-size:44px;font-weight:400;letter-spacing:-1px;margin-bottom:0">Simple, transparent pricing</h2>
+    <div class="pricing-grid">
+      <div class="plan">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">$0</div>
+        <div class="plan-period">Free forever</div>
+        <ul class="plan-features">
+          <li>3 articles per month</li>
+          <li>Up to 800 words</li>
+          <li>2 tone options</li>
+          <li>Article library (7 days)</li>
+        </ul>
+        <button class="btn btn-outline" onclick="openModal('signup')">Get started</button>
+      </div>
+      <div class="plan featured">
+        <div class="plan-badge">Most popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$9</div>
+        <div class="plan-period">per month, cancel anytime</div>
+        <ul class="plan-features">
+          <li>30 articles per month</li>
+          <li>Up to 1,500 words</li>
+          <li>All tone options</li>
+          <li>Unlimited library</li>
+          <li>Priority generation</li>
+        </ul>
+        <button class="btn btn-accent" onclick="handleSubscribe()">Start free trial →</button>
+      </div>
+      <div class="plan">
+        <div class="plan-name">Agency</div>
+        <div class="plan-price">$29</div>
+        <div class="plan-period">per month</div>
+        <ul class="plan-features">
+          <li>150 articles per month</li>
+          <li>Up to 2,000 words</li>
+          <li>All features</li>
+          <li>API access</li>
+          <li>Bulk generation</li>
+        </ul>
+        <button class="btn btn-outline" onclick="openModal('signup')">Get started</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<div class="wrap">
+  <div class="cta-banner">
+    <h2>Start publishing today</h2>
+    <p>Join 400+ creators shipping content on autopilot.</p>
+    <button class="btn btn-accent" onclick="openModal('signup')">Create free account →</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="wrap">
+  <footer>
+    <div class="logo">Content<span>Forge</span></div>
+    <div>© 2025 ContentForge. AI-generated content — always review before publishing.</div>
+    <div style="display:flex;gap:24px">
+      <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none">Terms</a>
+      <a href="#" style="color:var(--muted);font-size:13px;text-decoration:none">Privacy</a>
+    </div>
+  </footer>
+</div>
+
+<!-- AUTH MODALS -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <!-- Filled by JS -->
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG — replace with your actual values ─────────────────────────────
+const API_URL       = "https://YOUR_BACKEND.ondigitalocean.app";  // your Flask backend
+const AW_ENDPOINT   = "https://cloud.appwrite.io/v1";
+const AW_PROJECT_ID = "YOUR_APPWRITE_PROJECT_ID";
+// ────────────────────────────────────────────────────────────────────────────
+
+let currentUser = null;
+let currentJWT  = null;
+
+// ── Appwrite minimal SDK (fetch-based, no npm needed) ────────────────────────
+const aw = {
+  async req(method, path, body, jwt) {
+    const headers = {
+      "Content-Type": "application/json",
+      "X-Appwrite-Project": AW_PROJECT_ID,
+    };
+    if (jwt) headers["X-Appwrite-JWT"] = jwt;
+    const res = await fetch(AW_ENDPOINT + path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Appwrite error");
+    return data;
+  },
+  signup(email, password, name) {
+    return this.req("POST", "/account", { userId: "unique()", email, password, name });
+  },
+  login(email, password) {
+    return this.req("POST", "/account/sessions/email", { email, password });
+  },
+  getJWT(sessionId) {
+    return this.req("POST", "/account/jwt");
+  },
+  logout() {
+    return this.req("DELETE", "/account/sessions/current", null, currentJWT);
+  },
+};
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+function toast(msg, type = "default") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (type !== "default" ? " " + type : "");
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+// ── Modal ────────────────────────────────────────────────────────────────────
+function openModal(view) {
+  document.getElementById("modal-overlay").classList.add("open");
+  renderModal(view);
+}
+function closeModal() {
+  document.getElementById("modal-overlay").classList.remove("open");
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById("modal-overlay")) closeModal();
+}
+
+function renderModal(view) {
+  const el = document.getElementById("modal");
+  if (view === "signup") {
+    el.innerHTML = `
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h2>Create account</h2>
+      <p>Get 3 free articles every month.</p>
+      <div class="form-group"><label>Name</label><input id="f-name" type="text" placeholder="Your name" autocomplete="name"></div>
+      <div class="form-group"><label>Email</label><input id="f-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="form-group"><label>Password</label><input id="f-pass" type="password" placeholder="Min. 8 characters" autocomplete="new-password"></div>
+      <div class="form-error" id="form-err"></div>
+      <button class="btn btn-primary" onclick="doSignup()">Create account</button>
+      <div class="modal-switch">Already have an account? <a onclick="renderModal('login')">Sign in</a></div>
+    `;
+  } else {
+    el.innerHTML = `
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <h2>Welcome back</h2>
+      <p>Sign in to your ContentForge account.</p>
+      <div class="form-group"><label>Email</label><input id="f-email" type="email" placeholder="you@example.com" autocomplete="email"></div>
+      <div class="form-group"><label>Password</label><input id="f-pass" type="password" placeholder="Password" autocomplete="current-password"></div>
+      <div class="form-error" id="form-err"></div>
+      <button class="btn btn-primary" onclick="doLogin()">Sign in</button>
+      <div class="modal-switch">Don't have an account? <a onclick="renderModal('signup')">Create one</a></div>
+    `;
+  }
+}
+
+async function doSignup() {
+  const name  = document.getElementById("f-name").value.trim();
+  const email = document.getElementById("f-email").value.trim();
+  const pass  = document.getElementById("f-pass").value;
+  const err   = document.getElementById("form-err");
+  err.classList.remove("show");
+
+  if (!name || !email || pass.length < 8) {
+    err.textContent = "Please fill all fields (password min 8 chars).";
+    err.classList.add("show"); return;
+  }
+  try {
+    await aw.signup(email, pass, name);
+    const session = await aw.login(email, pass);
+    currentJWT = (await aw.getJWT(session.$id)).jwt;
+    closeModal();
+    toast("Account created! Welcome to ContentForge.", "success");
+    window.location.href = "/dashboard.html";
+  } catch (e) {
+    err.textContent = e.message; err.classList.add("show");
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById("f-email").value.trim();
+  const pass  = document.getElementById("f-pass").value;
+  const err   = document.getElementById("form-err");
+  err.classList.remove("show");
+  try {
+    const session = await aw.login(email, pass);
+    currentJWT = (await aw.getJWT(session.$id)).jwt;
+    closeModal();
+    toast("Signed in!", "success");
+    window.location.href = "/dashboard.html";
+  } catch (e) {
+    err.textContent = e.message; err.classList.add("show");
+  }
+}
+
+async function handleSubscribe() {
+  if (!currentJWT) { openModal("signup"); return; }
+  try {
+    const me = await fetch(API_URL + "/api/me", {
+      headers: { "Authorization": "Bearer " + currentJWT }
+    }).then(r => r.json());
+    const res = await fetch(API_URL + "/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: me.user_id, email: me.email }),
+    }).then(r => r.json());
+    window.location.href = res.checkout_url;
+  } catch (e) {
+    toast("Error starting checkout. Try again.", "error");
+  }
+}
+
+// Demo typing animation
+const titles = [
+  "10 Productivity Habits Every Remote Worker Needs in 2025",
+  "How to Build a Morning Routine That Actually Sticks",
+  "Deep Work: The Ultimate Guide for Distraction-Free Focus",
+];
+let ti = 0;
+setInterval(() => {
+  ti = (ti + 1) % titles.length;
+  const el = document.getElementById("demo-title");
+  if (el) el.textContent = titles[ti];
+}, 3000);
+</script>
+</body>
+</html>

@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — ContentForge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0e0e0e;
+    --paper: #f5f2eb;
+    --cream: #ede9df;
+    --accent: #c8420a;
+    --accent2: #1a5c3a;
+    --muted: #6b6860;
+    --border: rgba(14,14,14,0.12);
+    --serif: 'Instrument Serif', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+    --r: 6px;
+    --sidebar: 240px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--cream); color: var(--ink); font-size: 15px; line-height: 1.6; min-height: 100vh; display: flex; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar); flex-shrink: 0;
+    background: var(--ink); min-height: 100vh;
+    display: flex; flex-direction: column;
+    padding: 24px 0; position: sticky; top: 0;
+  }
+  .sidebar-logo {
+    font-family: var(--serif); font-size: 20px; color: var(--paper);
+    padding: 0 24px 28px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 20px;
+  }
+  .sidebar-logo span { color: #f0845e; }
+  .sidebar-nav { flex: 1; padding: 0 12px; display: flex; flex-direction: column; gap: 2px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: var(--r);
+    color: rgba(245,242,235,0.55); font-size: 14px; font-weight: 400;
+    cursor: pointer; transition: all .15s; text-decoration: none;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.06); color: var(--paper); }
+  .nav-item.active { background: rgba(255,255,255,0.1); color: var(--paper); font-weight: 500; }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+  .sidebar-footer { padding: 20px 24px 0; border-top: 1px solid rgba(255,255,255,0.08); margin-top: 20px; }
+  .user-chip {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.06); border-radius: var(--r);
+    padding: 10px 12px; cursor: pointer;
+  }
+  .user-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 500; color: #fff; flex-shrink: 0;
+  }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: 13px; color: var(--paper); font-weight: 500; truncate: ellipsis; white-space: nowrap; overflow: hidden; }
+  .user-plan { font-size: 11px; color: rgba(245,242,235,0.4); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar {
+    background: var(--paper); border-bottom: 1px solid var(--border);
+    padding: 0 40px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar-title { font-size: 15px; font-weight: 500; }
+  .credits-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px 5px 8px;
+    font-size: 13px; color: var(--muted);
+  }
+  .credits-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); }
+
+  /* ── CONTENT ── */
+  .content { padding: 40px; flex: 1; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── GENERATE PAGE ── */
+  .gen-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+  .panel {
+    background: var(--paper); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .panel-header {
+    padding: 18px 24px; border-bottom: 1px solid var(--border);
+    font-size: 13px; font-weight: 500; letter-spacing: 0.03em;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .panel-body { padding: 24px; }
+  .field { margin-bottom: 20px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  input[type=text], textarea, select {
+    width: 100%; padding: 10px 14px;
+    border: 1px solid var(--border); border-radius: var(--r);
+    background: var(--cream); font-family: var(--sans); font-size: 14px; color: var(--ink);
+    transition: border-color .2s;
+  }
+  input[type=text]:focus, textarea:focus, select:focus { outline: none; border-color: var(--ink); }
+  textarea { resize: vertical; min-height: 80px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 5px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+    border-radius: var(--r); font-family: var(--sans); font-size: 14px; font-weight: 500;
+    cursor: pointer; border: none; transition: all .2s;
+  }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-primary:hover { background: #2a2a2a; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-sm { padding: 6px 12px; font-size: 13px; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--ink); }
+  .btn-outline:hover { background: var(--cream); }
+  .gen-btn { width: 100%; justify-content: center; padding: 13px; font-size: 15px; margin-top: 8px; }
+
+  /* ── OUTPUT PANEL ── */
+  .output-placeholder {
+    min-height: 300px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    color: var(--muted); gap: 12px;
+  }
+  .output-placeholder .icon { font-size: 36px; opacity: 0.4; }
+  .output-article { display: none; }
+  .article-title { font-family: var(--serif); font-size: 26px; letter-spacing: -0.5px; margin-bottom: 16px; line-height: 1.2; }
+  .article-meta { display: flex; gap: 16px; margin-bottom: 20px; }
+  .meta-pill {
+    background: var(--cream); border: 1px solid var(--border);
+    border-radius: 4px; padding: 3px 8px; font-size: 12px; color: var(--muted);
+  }
+  .article-content {
+    font-size: 14px; line-height: 1.8; color: var(--ink);
+    max-height: 400px; overflow-y: auto; padding-right: 4px;
+    border-top: 1px solid var(--border); padding-top: 16px;
+  }
+  .article-content h1, .article-content h2 { font-family: var(--serif); font-weight: 400; margin: 20px 0 8px; }
+  .article-content h1 { font-size: 22px; }
+  .article-content h2 { font-size: 18px; }
+  .article-content p { margin-bottom: 12px; }
+  .article-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .loading-spinner {
+    min-height: 300px; display: none; align-items: center; justify-content: center;
+    flex-direction: column; gap: 16px; color: var(--muted); font-size: 14px;
+  }
+  .spinner {
+    width: 32px; height: 32px; border: 2px solid var(--border);
+    border-top-color: var(--ink); border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ARTICLES LIST ── */
+  .articles-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+  .articles-header h2 { font-family: var(--serif); font-size: 28px; font-weight: 400; }
+  .articles-grid { display: grid; gap: 12px; }
+  .article-card {
+    background: var(--paper); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 24px; display: flex; align-items: center; gap: 20px; cursor: pointer;
+    transition: all .15s;
+  }
+  .article-card:hover { border-color: rgba(14,14,14,0.25); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(14,14,14,0.07); }
+  .article-card-info { flex: 1; min-width: 0; }
+  .article-card-title { font-weight: 500; font-size: 15px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .article-card-meta { font-size: 12px; color: var(--muted); }
+  .article-card-words { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .empty-state { text-align: center; padding: 60px; color: var(--muted); }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; opacity: 0.4; }
+
+  /* ── UPGRADE BANNER ── */
+  .upgrade-banner {
+    background: var(--ink); border-radius: 10px; padding: 24px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 28px; gap: 16px;
+  }
+  .upgrade-banner.hidden { display: none; }
+  .upgrade-banner p { color: rgba(245,242,235,0.7); font-size: 14px; }
+  .upgrade-banner strong { color: var(--paper); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 2000;
+    background: var(--ink); color: var(--paper); padding: 12px 18px;
+    border-radius: 8px; font-size: 14px; max-width: 300px;
+    transform: translateY(60px); opacity: 0; transition: all .3s;
+  }
+  .toast.show { transform: none; opacity: 1; }
+  .toast.success { background: var(--accent2); }
+  .toast.error { background: #991111; }
+
+  @media (max-width: 900px) {
+    .sidebar { width: 60px; }
+    .sidebar-logo, .nav-item span:not(.nav-icon), .user-info { display: none; }
+    .gen-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-logo">Content<span>Forge</span></div>
+  <nav class="sidebar-nav">
+    <a class="nav-item active" onclick="showPage('generate')" href="#">
+      <span class="nav-icon">✍️</span><span>Generate</span>
+    </a>
+    <a class="nav-item" onclick="showPage('articles')" href="#">
+      <span class="nav-icon">📚</span><span>My Articles</span>
+    </a>
+    <a class="nav-item" onclick="showPage('billing')" href="#">
+      <span class="nav-icon">💳</span><span>Billing</span>
+    </a>
+    <a class="nav-item" href="/" style="margin-top:auto">
+      <span class="nav-icon">←</span><span>Back to site</span>
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip" onclick="showPage('billing')">
+      <div class="user-avatar" id="av">?</div>
+      <div class="user-info">
+        <div class="user-name" id="uname">Loading…</div>
+        <div class="user-plan" id="uplan">—</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="page-title">Generate Article</div>
+    <div class="credits-badge">
+      <span class="credits-dot"></span>
+      <span id="credits-label">— credits</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- GENERATE PAGE -->
+    <div class="page active" id="page-generate">
+      <div id="upgrade-banner" class="upgrade-banner hidden">
+        <div>
+          <strong>You're on the free plan.</strong>
+          <p>Upgrade to Pro for 30 articles/month and priority generation.</p>
+        </div>
+        <button class="btn btn-accent btn-sm" onclick="startCheckout()">Upgrade → $9/mo</button>
+      </div>
+
+      <div class="gen-grid">
+        <div class="panel">
+          <div class="panel-header">Article settings</div>
+          <div class="panel-body">
+            <div class="field">
+              <label>Topic *</label>
+              <input type="text" id="inp-topic" placeholder="e.g. Best productivity habits for remote workers">
+            </div>
+            <div class="field">
+              <label>Keywords <span style="font-weight:400;color:var(--muted)">(comma-separated)</span></label>
+              <input type="text" id="inp-keywords" placeholder="e.g. remote work, deep work, morning routine">
+              <div class="hint">These will be woven naturally into the article.</div>
+            </div>
+            <div class="field">
+              <label>Tone</label>
+              <select id="inp-tone">
+                <option value="professional">Professional</option>
+                <option value="conversational">Conversational</option>
+                <option value="authoritative">Authoritative</option>
+                <option value="playful">Playful</option>
+              </select>
+            </div>
+            <button class="btn btn-primary gen-btn" id="gen-btn" onclick="generateArticle()">
+              ✦ Generate article
+            </button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <span>Output</span>
+            <span id="output-status" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <div class="panel-body">
+            <div class="output-placeholder" id="output-placeholder">
+              <div class="icon">✦</div>
+              <div>Your article will appear here.</div>
+              <div style="font-size:12px">Fill in your topic and click Generate.</div>
+            </div>
+
+            <div class="loading-spinner" id="loading-spinner">
+              <div class="spinner"></div>
+              <div id="loading-msg">Writing your article…</div>
+            </div>
+
+            <div class="output-article" id="output-article">
+              <div class="article-title" id="out-title"></div>
+              <div class="article-meta">
+                <span class="meta-pill" id="out-words"></span>
+                <span class="meta-pill" id="out-tone"></span>
+              </div>
+              <div class="article-content" id="out-content"></div>
+              <div class="article-actions">
+                <button class="btn btn-primary btn-sm" onclick="copyArticle()">Copy HTML</button>
+                <button class="btn btn-outline btn-sm" onclick="copyPlainText()">Copy text</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ARTICLES PAGE -->
+    <div class="page" id="page-articles">
+      <div class="articles-header">
+        <h2>My Articles</h2>
+        <button class="btn btn-primary btn-sm" onclick="showPage('generate')">+ New article</button>
+      </div>
+      <div class="articles-grid" id="articles-list">
+        <div class="empty-state">
+          <div class="icon">📄</div>
+          <div>No articles yet. Generate your first one!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BILLING PAGE -->
+    <div class="page" id="page-billing">
+      <h2 style="font-family:var(--serif);font-size:32px;font-weight:400;margin-bottom:28px">Billing & Plan</h2>
+      <div class="panel" style="max-width:500px">
+        <div class="panel-header">Current plan</div>
+        <div class="panel-body">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+            <div>
+              <div style="font-size:18px;font-weight:500" id="billing-plan-name">Free</div>
+              <div style="font-size:13px;color:var(--muted)" id="billing-credits"></div>
+            </div>
+            <div id="billing-status-badge" style="background:var(--cream);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-size:12px;color:var(--muted)">Inactive</div>
+          </div>
+          <button class="btn btn-accent" id="billing-btn" onclick="startCheckout()" style="width:100%;justify-content:center">
+            Upgrade to Pro — $9/mo
+          </button>
+          <div style="font-size:12px;color:var(--muted);margin-top:10px;text-align:center">Cancel anytime. Billed monthly via Stripe.</div>
+        </div>
+      </div>
+      <div style="margin-top:16px">
+        <button class="btn btn-outline btn-sm" onclick="logout()">Sign out</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+const API_URL       = "https://YOUR_BACKEND.ondigitalocean.app";
+const AW_ENDPOINT   = "https://cloud.appwrite.io/v1";
+const AW_PROJECT_ID = "YOUR_APPWRITE_PROJECT_ID";
+// ────────────────────────────────────────────────────────────────────────────
+
+let currentJWT  = null;
+let userInfo    = null;
+let lastArticle = null;
+
+// ── Utils ────────────────────────────────────────────────────────────────────
+function toast(msg, type = "default") {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show" + (type !== "default" ? " " + type : "");
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+function showPage(name) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  document.getElementById("page-" + name).classList.add("active");
+  const titles = { generate: "Generate Article", articles: "My Articles", billing: "Billing & Plan" };
+  document.getElementById("page-title").textContent = titles[name] || name;
+  if (name === "articles") loadArticles();
+}
+
+// ── Appwrite ─────────────────────────────────────────────────────────────────
+async function awReq(method, path, body) {
+  const headers = {
+    "Content-Type": "application/json",
+    "X-Appwrite-Project": AW_PROJECT_ID,
+  };
+  const res = await fetch(AW_ENDPOINT + path, {
+    method, headers, credentials: "include",
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || "Auth error");
+  return data;
+}
+
+async function getJWT() {
+  const data = await awReq("POST", "/account/jwt");
+  return data.jwt;
+}
+
+// ── Auth check ───────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const account = await awReq("GET", "/account");
+    currentJWT = await getJWT();
+    const me = await fetch(API_URL + "/api/me", {
+      headers: { "Authorization": "Bearer " + currentJWT }
+    }).then(r => r.json());
+    userInfo = me;
+    renderUser(account, me);
+
+    // Handle post-payment redirect
+    if (new URLSearchParams(location.search).get("subscribed") === "true") {
+      toast("🎉 Subscription activated! You have 30 credits.", "success");
+      history.replaceState({}, "", "/dashboard.html");
+    }
+  } catch (e) {
+    // Not logged in — redirect to landing
+    window.location.href = "/";
+  }
+}
+
+function renderUser(account, me) {
+  document.getElementById("av").textContent = account.name?.[0]?.toUpperCase() || "?";
+  document.getElementById("uname").textContent = account.name || account.email;
+  const isActive = me.subscription_status === "active";
+  document.getElementById("uplan").textContent = isActive ? "Pro" : "Free";
+  document.getElementById("credits-label").textContent = me.credits_remaining + " credits left";
+
+  // Upgrade banner
+  if (!isActive) {
+    document.getElementById("upgrade-banner").classList.remove("hidden");
+  }
+
+  // Billing page
+  document.getElementById("billing-plan-name").textContent = isActive ? "Pro — $9/month" : "Free";
+  document.getElementById("billing-credits").textContent = me.credits_remaining + " articles remaining this month";
+  const badge = document.getElementById("billing-status-badge");
+  badge.textContent = isActive ? "Active" : "Inactive";
+  badge.style.background = isActive ? "#d4edda" : "var(--cream)";
+  badge.style.color = isActive ? "#155724" : "var(--muted)";
+  if (isActive) {
+    document.getElementById("billing-btn").textContent = "Manage subscription";
+    document.getElementById("billing-btn").onclick = () => toast("Visit stripe.com/billing to manage.", "default");
+  }
+}
+
+// ── Generate ─────────────────────────────────────────────────────────────────
+async function generateArticle() {
+  const topic    = document.getElementById("inp-topic").value.trim();
+  const keywords = document.getElementById("inp-keywords").value.split(",").map(k => k.trim()).filter(Boolean);
+  const tone     = document.getElementById("inp-tone").value;
+
+  if (!topic) { toast("Please enter a topic.", "error"); return; }
+
+  document.getElementById("output-placeholder").style.display = "none";
+  document.getElementById("output-article").style.display = "none";
+  document.getElementById("loading-spinner").style.display = "flex";
+  document.getElementById("gen-btn").disabled = true;
+
+  const msgs = ["Writing your article…", "Crafting the intro…", "Building the sections…", "Polishing the copy…", "Almost done…"];
+  let mi = 0;
+  const msgInt = setInterval(() => {
+    document.getElementById("loading-msg").textContent = msgs[Math.min(++mi, msgs.length - 1)];
+  }, 4000);
+
+  try {
+    const res = await fetch(API_URL + "/api/generate", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + currentJWT,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ topic, keywords, tone }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Generation failed");
+    }
+
+    lastArticle = data;
+    clearInterval(msgInt);
+    document.getElementById("loading-spinner").style.display = "none";
+    document.getElementById("output-article").style.display = "block";
+    document.getElementById("out-title").textContent = data.title;
+    document.getElementById("out-words").textContent = data.word_count + " words";
+    document.getElementById("out-tone").textContent = tone;
+    document.getElementById("out-content").innerHTML = data.content;
+    document.getElementById("output-status").textContent = data.credits_remaining + " credits left";
+    document.getElementById("credits-label").textContent = data.credits_remaining + " credits left";
+    toast("Article generated successfully!", "success");
+  } catch (e) {
+    clearInterval(msgInt);
+    document.getElementById("loading-spinner").style.display = "none";
+    document.getElementById("output-placeholder").style.display = "flex";
+    toast(e.message, "error");
+  } finally {
+    document.getElementById("gen-btn").disabled = false;
+  }
+}
+
+function copyArticle() {
+  if (!lastArticle) return;
+  navigator.clipboard.writeText(lastArticle.content).then(() => toast("HTML copied to clipboard!", "success"));
+}
+
+function copyPlainText() {
+  if (!lastArticle) return;
+  const tmp = document.createElement("div");
+  tmp.innerHTML = lastArticle.content;
+  navigator.clipboard.writeText(tmp.textContent).then(() => toast("Plain text copied!", "success"));
+}
+
+// ── Articles list ─────────────────────────────────────────────────────────────
+async function loadArticles() {
+  try {
+    const data = await fetch(API_URL + "/api/articles", {
+      headers: { "Authorization": "Bearer " + currentJWT }
+    }).then(r => r.json());
+
+    const list = document.getElementById("articles-list");
+    if (!data.articles || data.articles.length === 0) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">📄</div><div>No articles yet. Generate your first one!</div></div>`;
+      return;
+    }
+
+    list.innerHTML = data.articles.map(a => `
+      <div class="article-card" onclick="viewArticle('${a.id}')">
+        <div class="article-card-info">
+          <div class="article-card-title">${a.title}</div>
+          <div class="article-card-meta">${a.topic} · ${new Date(a.created_at).toLocaleDateString()}</div>
+        </div>
+        <div class="article-card-words">${a.word_count} words</div>
+      </div>
+    `).join("");
+  } catch (e) {
+    toast("Failed to load articles.", "error");
+  }
+}
+
+async function viewArticle(id) {
+  try {
+    const data = await fetch(API_URL + "/api/articles/" + id, {
+      headers: { "Authorization": "Bearer " + currentJWT }
+    }).then(r => r.json());
+
+    lastArticle = data;
+    showPage("generate");
+    document.getElementById("inp-topic").value = data.topic;
+    document.getElementById("output-placeholder").style.display = "none";
+    document.getElementById("loading-spinner").style.display = "none";
+    document.getElementById("output-article").style.display = "block";
+    document.getElementById("out-title").textContent = data.title;
+    document.getElementById("out-words").textContent = data.word_count + " words";
+    document.getElementById("out-tone").textContent = data.tone;
+    document.getElementById("out-content").innerHTML = data.content;
+  } catch (e) {
+    toast("Failed to load article.", "error");
+  }
+}
+
+// ── Stripe checkout ───────────────────────────────────────────────────────────
+async function startCheckout() {
+  if (!userInfo) return;
+  try {
+    const res = await fetch(API_URL + "/api/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: userInfo.user_id, email: userInfo.email }),
+    }).then(r => r.json());
+    window.location.href = res.checkout_url;
+  } catch (e) {
+    toast("Checkout error. Try again.", "error");
+  }
+}
+
+// ── Logout ────────────────────────────────────────────────────────────────────
+async function logout() {
+  try {
+    await awReq("DELETE", "/account/sessions/current");
+  } catch (_) {}
+  window.location.href = "/";
+}
+
+init();
+</script>
+</body>
+</html>
